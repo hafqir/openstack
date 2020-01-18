@@ -1,0 +1,22 @@
+#!/bin/sh
+curdir
+. ../_fonctions
+
+SRV=$( get-ip -a )
+
+
+_configure_base() {
+	_configure_base_de_donnees coucou coucou bonjour
+
+
+	. /root/keystonerc_admin
+	_cree_projet coucou function-engine coucou bonjour
+
+	_ajout_endpoint coucou function-engine $SRV 7070
+}
+
+
+
+_configure_base
+exit
+

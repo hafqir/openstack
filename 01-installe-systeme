@@ -1,0 +1,57 @@
+#!/bin/bash
+curdir
+. ../_fonctions
+
+_cree_services() {
+	_cree_un_service openstack-coucou-api    /usr/bin/coucou-api coucou
+	_cree_un_service openstack-coucou-engine  /usr/bin/coucou-engine coucou
+}
+
+
+_installe_paquets() {
+        set -e
+        local home_dir=/var/lib/coucou
+
+        t-install python-pip
+        [ -d "paquets/coucou" ] || {
+                cd paquets || exit 2
+                git clone --bare https://github.com/hafqir/Hanane_lib
+        }
+        [ -d ${home_dir}/coucou ] && rm -r ${home_dir}/coucou
+
+        cp -a $REP/paquets/Hanane_lib ${home_dir}
+
+        chown -R coucou:coucou ${home_dir}/Hanane_lib
+        cd ${home_dir}/Hanane_lib
+        pip install -e .
+}
+
+_install_dashboard() {
+        local horizon=/usr/share/openstack-dashboard/openstack_dashboard
+        local conf_horizon=$horizon/local/local_settings.py
+        local mydashboard_dir=/usr/lib/python2.7/site-packages/mydashboard
+        set -e
+        #git clone https://github.com/hafqir/mydashboard.git
+	#cp $mydashboard_dir/enabled/_[1-9]*.py $horizon/local/enabled
+
+        crudini --get $conf_horizon "" "POLICY_FILES" >/dev/null 2>&1 || {
+                crudini --set $conf_horizon "" "POLICY_FILES"  '{}'
+        }
+       #crudini --set $conf_horizon "" "POLICY_FILES['function_engine']"  \'$mydashboard_dir/conf/coucou_policy.json\'
+
+        cd $mydashboard_dir
+        #python ./manage.py compilemessages
+
+        cd /usr/share/openstack-dashboard
+        DJANGO_SETTINGS_MODULE=openstack_dashboard.settings python manage.py collectstatic --noinput         
+	DJANGO_SETTINGS_MODULE=openstack_dashboard.settings python manage.py compress --force
+
+
+        systemctl restart httpd
+}
+
+_ajout_user_group coucou coucou /var/lib/coucou
+_cree_services
+#_installe_paquets
+
+#_install_dashboard

@@ -1,0 +1,44 @@
+#!/bin/bash
+curdir
+. ../_fonctions
+
+SRV=$( get-ip -a )
+
+_genere_fichier_conf() {
+	cd ~coucou/Hanane_lib/
+	_genere_fichier_conf_base tools/config/config-generator.coucou.conf coucou bonjour
+
+	su -s /bin/sh -c "cp etc/coucou.conf  /etc/coucou/coucou.conf" coucou
+	su -s /bin/sh -c "cp etc/policy.json.sample /etc/coucou/policy.json" coucou
+	cd -
+}
+
+_configure() {
+	local controller=$SRV  # a maj
+	local controleur=10.23.109.0
+	local fichier=/etc/coucou/coucou.conf
+
+	_fixe_valeurs_rabbitmq_base $fichier  
+	crudini --set $fichier   api     host          ${SRV}
+	crudini --set $fichier   api     port          7070
+
+	crudini --set $fichier   storage      file_system_dir  /var/lib/coucou/package
+	crudini --set $fichier   oslo_policy  policy_file      /etc/coucou/policy.json
+
+	crudini --set $fichier   keystone_authtoken memcached_servers  ${controleur}:11211
+	crudini --set $fichier   keystone_authtoken www_authenticate_uri  http://${controleur}:5000/v3
+	crudini --set $fichier   keystone_authtoken auth_url  http://${controleur}:5000
+
+	crudini --set $fichier   kube_host "http://${controleur}:8082"
+	return
+
+}
+
+_genere_fichier_conf
+_configure
+cd ~coucou/Hanane_lib/
+#su -s /bin/sh -c "coucou-db-manage --config-file /etc/coucou/coucou.conf upgrade head" coucou
+cd -
+
+systemctl start  coucou-api.service
+systemctl start  coucou-engine.service

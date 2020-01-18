@@ -1,0 +1,13 @@
+#!/bin/bash
+curdir
+. ../_fonctions
+
+_action() {
+	local oper=$1
+	for s in openstack-qinling-api.service openstack-qinling-engine.service
+	do
+		systemctl $oper $s
+	done
+}
+_execute "$1"
+
